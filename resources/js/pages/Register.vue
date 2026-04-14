@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import api from '../services/api'
 
 export default {
   name: 'RegisterPage',
@@ -76,7 +76,7 @@ export default {
       this.loading = true
 
       try {
-        await axios.post('/api/v1/auth/register', this.form)
+        await api.post('/auth/register', this.form)
 
         this.successMessage = 'Registration successful.'
         this.form = {
