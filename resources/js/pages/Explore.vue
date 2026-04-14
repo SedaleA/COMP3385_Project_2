@@ -11,9 +11,28 @@
       <button @click="handleSearch">Search</button>
     </div>
 
+    <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
+    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
     <div class="services-list">
-      <article v-for="service in displayedServices" :key="service.id" class="service-card">
-        <h2>{{ service.title }}</h2>
+      <article
+        v-for="service in displayedServices"
+        :key="service.id"
+        class="service-card"
+      >
+        <div class="card-top">
+          <h2>{{ service.title }}</h2>
+
+          <button
+            type="button"
+            class="heart-button"
+            @click="toggleFavourite(service)"
+            :aria-label="service.isFavourited ? 'Remove from favourites' : 'Add to favourites'"
+          >
+            {{ service.isFavourited ? '♥' : '♡' }}
+          </button>
+        </div>
+
         <p><strong>Category:</strong> {{ service.category }}</p>
         <p><strong>Rate:</strong> {{ service.rate }} {{ service.rate_type }}</p>
         <p>{{ service.description }}</p>
@@ -34,6 +53,8 @@ export default {
   data() {
     return {
       searchTerm: '',
+      successMessage: '',
+      errorMessage: '',
       allServices: [
         {
           id: 1,
@@ -41,7 +62,8 @@ export default {
           category: 'Graphic Design',
           rate: 50,
           rate_type: 'per hour',
-          description: 'Professional logo design for small businesses.'
+          description: 'Professional logo design for small businesses.',
+          isFavourited: false
         },
         {
           id: 2,
@@ -49,7 +71,8 @@ export default {
           category: 'Web Development',
           rate: 300,
           rate_type: 'fixed',
-          description: 'Responsive website development using modern tools.'
+          description: 'Responsive website development using modern tools.',
+          isFavourited: false
         },
         {
           id: 3,
@@ -57,7 +80,8 @@ export default {
           category: 'Writing & Editing',
           rate: 25,
           rate_type: 'per hour',
-          description: 'Editing and proofreading for essays and reports.'
+          description: 'Editing and proofreading for essays and reports.',
+          isFavourited: false
         }
       ],
       displayedServices: []
@@ -68,6 +92,9 @@ export default {
   },
   methods: {
     handleSearch() {
+      this.successMessage = ''
+      this.errorMessage = ''
+
       const term = this.searchTerm.trim().toLowerCase()
 
       if (!term) {
@@ -79,6 +106,27 @@ export default {
         service.title.toLowerCase().includes(term) ||
         service.category.toLowerCase().includes(term)
       )
+    },
+    async toggleFavourite(service) {
+      this.successMessage = ''
+      this.errorMessage = ''
+
+      try {
+        service.isFavourited = !service.isFavourited
+
+        if (service.isFavourited) {
+          this.successMessage = `${service.title} added to favourites.`
+        } else {
+          this.successMessage = `${service.title} removed from favourites.`
+        }
+
+        // Later, when backend is merged, replace the mock toggle logic
+        // with an API call like:
+        // await api.post(`/services/${service.id}/favourite`)
+      } catch (error) {
+        this.errorMessage = 'Unable to update favourites.'
+        console.error(error)
+      }
     }
   }
 }
@@ -92,7 +140,7 @@ export default {
 .search-box {
   display: flex;
   gap: 12px;
-  margin: 20px 0 30px;
+  margin: 20px 0 20px;
 }
 
 .search-box input {
@@ -107,6 +155,16 @@ export default {
   cursor: pointer;
 }
 
+.success-message {
+  margin-bottom: 16px;
+  color: green;
+}
+
+.error-message {
+  margin-bottom: 16px;
+  color: red;
+}
+
 .services-list {
   display: flex;
   flex-direction: column;
@@ -118,6 +176,21 @@ export default {
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 8px;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.heart-button {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
 }
 
 .card-actions {
