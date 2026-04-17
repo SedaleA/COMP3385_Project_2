@@ -14,6 +14,13 @@ return new class extends Migration
         Schema::create('services', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->string('title');
+            $table->string('description');
+            $table->string('category');
+            $table->decimal('rate',10,2);
+            $table->string('rate_type');
+            $table->string('photos')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
     }
 

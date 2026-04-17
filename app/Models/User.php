@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
+    
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -30,13 +30,23 @@ class User extends Authenticatable
         'password',
    ];
 
-   public function services ()
+    public function services()
     {
-          return $this->hasMany(Service::class);
+        return $this->hasMany(Service::class);
     }
 
-    public function favourites()
+    public function favouriteServices()
     {
-        return $this->hasMany(Favourite::class);
+        return $this->belongsToMany(Service::class, 'favourites');
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims(): array
+    {
+        return [];
     }
 }
