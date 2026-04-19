@@ -17,9 +17,14 @@
               <label for="photo">Cover Image <span>*</span></label>
 
               <label for="photo" class="upload-box">
-                <span class="upload-icon">🖼️</span>
-                <strong>Click to upload a cover image</strong>
-                <small>JPG, PNG or GIF up to 3MB</small>
+                <span v-if="photoPreview" class="preview-wrap">
+                  <img :src="photoPreview" alt="Preview" class="photo-preview-img" />
+                </span>
+                <template v-else>
+                  <span class="upload-icon">🖼️</span>
+                  <strong>Click to upload a cover image</strong>
+                  <small>JPG, PNG or GIF up to 3MB</small>
+                </template>
               </label>
 
               <input id="photo" type="file" accept="image/*" @change="handleFileChange" />
@@ -36,6 +41,7 @@
                 v-model="form.title"
                 type="text"
                 placeholder="e.g. Professional Logo Design & Brand Identity"
+                maxlength="255"
               />
             </div>
 
@@ -45,7 +51,7 @@
                 id="description"
                 v-model="form.description"
                 maxlength="500"
-                placeholder="Describe your service in detail. What will you deliver? What’s included? What’s your process?"
+                placeholder="Describe your service in detail. What will you deliver? What's included? What's your process?"
               ></textarea>
               <small>{{ form.description.length }}/500 characters</small>
             </div>
@@ -90,7 +96,9 @@
           </div>
 
           <div class="form-actions">
-            <button type="button" class="cancel-btn">Cancel</button>
+            <button type="button" class="cancel-btn" @click="$router.push('/explore')">
+              Cancel
+            </button>
             <button type="submit" :disabled="loading" class="submit-btn">
               {{ loading ? 'Submitting...' : 'List My Service' }}
             </button>
@@ -138,6 +146,7 @@ export default {
         rate_type: '',
         photo: null
       },
+      photoPreview: '',
       loading: false,
       successMessage: '',
       errorMessage: ''
@@ -145,7 +154,9 @@ export default {
   },
   methods: {
     handleFileChange(event) {
-      this.form.photo = event.target.files[0] || null
+      const file = event.target.files[0] || null
+      this.form.photo = file
+      this.photoPreview = file ? URL.createObjectURL(file) : ''
     },
     async handleSubmit() {
       this.successMessage = ''
@@ -175,12 +186,12 @@ export default {
         formData.append('photo', this.form.photo)
 
         await api.post('/services', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers: { 'Content-Type': 'multipart/form-data' }
         })
 
-        this.successMessage = 'Service added successfully.'
+        this.successMessage = 'Service listed successfully!'
+
+        // Reset form
         this.form = {
           title: '',
           description: '',
@@ -189,8 +200,19 @@ export default {
           rate_type: '',
           photo: null
         }
+        this.photoPreview = ''
+
+        // Redirect to explore after short delay
+        setTimeout(() => {
+          this.$router.push('/explore')
+        }, 1500)
       } catch (error) {
-        this.errorMessage = 'Failed to add service.'
+        const errors = error.response?.data?.errors
+        if (errors) {
+          this.errorMessage = Object.values(errors).flat().join(' ')
+        } else {
+          this.errorMessage = error.response?.data?.message || 'Failed to add service.'
+        }
         console.error(error)
       } finally {
         this.loading = false
@@ -320,6 +342,18 @@ textarea {
   text-align: center;
   cursor: pointer;
   padding: 16px;
+  overflow: hidden;
+}
+
+.preview-wrap {
+  width: 100%;
+}
+
+.photo-preview-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
 }
 
 .upload-icon {
@@ -382,17 +416,8 @@ input[type='file'] {
 }
 
 @media (max-width: 640px) {
-  .two-column-row {
-    grid-template-columns: 1fr;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .cancel-btn,
-  .submit-btn {
-    width: 100%;
-  }
+  .two-column-row { grid-template-columns: 1fr; }
+  .form-actions { flex-direction: column; }
+  .cancel-btn, .submit-btn { width: 100%; }
 }
 </style>

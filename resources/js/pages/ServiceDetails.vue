@@ -1,9 +1,17 @@
 <template>
-  <section v-if="service" class="service-details-page">
+  <section v-if="loading" class="loading-page">
+    <p>Loading service...</p>
+  </section>
+
+  <section v-else-if="service" class="service-details-page">
     <div class="details-container">
       <div class="details-main">
         <div class="details-image-wrap">
-          <img :src="service.image" :alt="service.title" class="details-image" />
+          <img
+            :src="service.photo ? `/storage/${service.photo}` : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'"
+            :alt="service.title"
+            class="details-image"
+          />
           <span class="category-tag">{{ service.category }}</span>
         </div>
 
@@ -11,12 +19,14 @@
           <h1>{{ service.title }}</h1>
 
           <button
+            v-if="isLoggedIn"
             type="button"
             class="favourite-badge"
             @click="toggleFavourite"
+            :disabled="favouriteLoading"
           >
-            <span :class="{ active: service.isFavourited }">♥</span>
-            {{ service.isFavourited ? 'Favourited' : 'Favourite' }}
+            <span :class="{ active: isFavourited }">♥</span>
+            {{ isFavourited ? 'Favourited' : 'Favourite' }}
           </button>
         </div>
 
@@ -40,7 +50,7 @@
             </div>
             <div>
               <label>Listed</label>
-              <span>{{ service.date_listed }}</span>
+              <span>{{ formatDate(service.created_at) }}</span>
             </div>
           </div>
 
@@ -48,22 +58,22 @@
           <small>Response typically within 24 hours</small>
         </div>
 
-        <div class="sidebar-card provider-card">
+        <div v-if="service.user" class="sidebar-card provider-card">
           <h3>About the Provider</h3>
 
           <div class="provider-info">
-            <div class="provider-avatar">{{ service.provider_name.charAt(0) }}</div>
+            <div class="provider-avatar">{{ service.user.name.charAt(0) }}</div>
 
             <div>
-              <strong>{{ service.provider_name }}</strong>
-              <p>{{ service.location }}</p>
-              <small>Member since {{ service.member_since }}</small>
+              <strong>{{ service.user.name }}</strong>
+              <p>{{ service.user.location }}</p>
+              <small>Member since {{ formatYear(service.user.created_at) }}</small>
             </div>
           </div>
 
-          <p class="provider-bio">{{ service.provider_bio }}</p>
+          <p v-if="service.user.biography" class="provider-bio">{{ service.user.biography }}</p>
 
-          <router-link :to="`/users/${service.user_id}`" class="profile-btn">
+          <router-link :to="`/users/${service.user.id}`" class="profile-btn">
             View Profile
           </router-link>
         </div>
@@ -82,98 +92,93 @@
 </template>
 
 <script>
+import api from '../services/api'
+
 export default {
   name: 'ServiceDetailsPage',
   data() {
     return {
+      service: null,
+      isFavourited: false,
+      favouriteLoading: false,
+      loading: false,
       toastMessage: '',
-      services: [
-        {
-          id: 1,
-          title: 'Logo Design',
-          category: 'Graphic Design',
-          rate: 50,
-          rate_type: 'per hour',
-          description:
-            'Professional logo design for small businesses and personal brands. I create clean, memorable designs that reflect your business identity and help you stand out.',
-          provider_name: 'Daniela Retemyer',
-          location: 'St. John, Antigua',
-          user_id: 1,
-          image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=900&q=80',
-          isFavourited: true,
-          date_listed: 'March 14, 2024',
-          member_since: '2023',
-          provider_bio:
-            'Creative designer with experience in branding, logo design, and visual identity work for small businesses and online brands.'
-        },
-        {
-          id: 2,
-          title: 'Website Development',
-          category: 'Web Development',
-          rate: 300,
-          rate_type: 'fixed',
-          description:
-            'Responsive website development using modern tools and clean layouts. Perfect for portfolios, small business sites, and landing pages.',
-          provider_name: 'Jordan Smith',
-          location: 'St. George, Antigua',
-          user_id: 2,
-          image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80',
-          isFavourited: false,
-          date_listed: 'March 16, 2024',
-          member_since: '2022',
-          provider_bio:
-            'Frontend developer focused on responsive websites, clean code, and user-friendly digital experiences.'
-        },
-        {
-          id: 3,
-          title: 'Essay Editing',
-          category: 'Writing & Editing',
-          rate: 25,
-          rate_type: 'per hour',
-          description:
-            'Editing and proofreading for essays, reports, and academic writing. I help improve clarity, grammar, and structure.',
-          provider_name: 'Alicia Browne',
-          location: 'St. Mary, Antigua',
-          user_id: 3,
-          image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80',
-          isFavourited: false,
-          date_listed: 'March 18, 2024',
-          member_since: '2021',
-          provider_bio:
-            'Editor and proofreader with a strong interest in helping students and professionals present polished written work.'
-        }
-      ],
-      service: null
     }
   },
-  mounted() {
-    const serviceId = Number(this.$route.params.service_id)
-    this.service = this.services.find(service => service.id === serviceId) || null
+  computed: {
+    isLoggedIn() {
+      return !!localStorage.getItem('token')
+    }
+  },
+  async mounted() {
+    await this.fetchService()
   },
   methods: {
-    toggleFavourite() {
-      if (!this.service) return
-
-      this.service.isFavourited = !this.service.isFavourited
-
-      if (this.service.isFavourited) {
-        this.showToast('Added to favourites')
-      } else {
-        this.showToast('Removed from favourites')
+    async fetchService() {
+      this.loading = true
+      try {
+        const serviceId = this.$route.params.service_id
+        const response = await api.get(`/services/${serviceId}`)
+        this.service = response.data.service
+      } catch (error) {
+        this.service = null
+        console.error(error)
+      } finally {
+        this.loading = false
       }
+    },
+    async toggleFavourite() {
+      if (!this.service || this.favouriteLoading) return
+
+      this.favouriteLoading = true
+
+      // Optimistically toggle
+      this.isFavourited = !this.isFavourited
+
+      try {
+        await api.post(`/services/${this.service.id}/favourite`)
+        this.showToast('Added to favourites')
+      } catch (error) {
+        const status = error.response?.status
+        if (status === 409) {
+          this.isFavourited = true
+          this.showToast('Already in your favourites')
+        } else {
+          // Revert on unexpected error
+          this.isFavourited = !this.isFavourited
+          this.showToast('Something went wrong')
+          console.error(error)
+        }
+      } finally {
+        this.favouriteLoading = false
+      }
+    },
+    formatDate(dateString) {
+      if (!dateString) return '—'
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      })
+    },
+    formatYear(dateString) {
+      if (!dateString) return '—'
+      return new Date(dateString).getFullYear()
     },
     showToast(message) {
       this.toastMessage = message
-
-      setTimeout(() => {
-        this.toastMessage = ''
-      }, 2500)
+      setTimeout(() => { this.toastMessage = '' }, 2500)
     }
   }
 }
 </script>
 
 <style scoped>
+.loading-page,
+.not-found-page {
+  padding: 80px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
 .service-details-page {
   background: #f8fafc;
   padding: 36px 20px 60px;
@@ -246,6 +251,12 @@ export default {
   padding: 10px 14px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.favourite-badge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .favourite-badge span {
@@ -375,16 +386,9 @@ export default {
   flex-shrink: 0;
 }
 
-.provider-info strong {
-  display: block;
-  color: #0f172a;
-}
-
+.provider-info strong { display: block; color: #0f172a; }
 .provider-info p,
-.provider-info small {
-  margin: 0;
-  color: #64748b;
-}
+.provider-info small { margin: 0; color: #64748b; }
 
 .provider-bio {
   color: #475569;
@@ -396,11 +400,6 @@ export default {
   border: 1px solid #38bdf8;
   color: #0ea5e9;
   background: white;
-}
-
-.not-found-page {
-  padding: 80px 20px;
-  text-align: center;
 }
 
 .toast {
@@ -418,25 +417,12 @@ export default {
 }
 
 @media (max-width: 900px) {
-  .details-container {
-    grid-template-columns: 1fr;
-  }
+  .details-container { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {
-  .title-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .details-image {
-    height: 240px;
-  }
-
-  .toast {
-    right: 16px;
-    left: 16px;
-    bottom: 16px;
-  }
+  .title-row { flex-direction: column; align-items: flex-start; }
+  .details-image { height: 240px; }
+  .toast { right: 16px; left: 16px; bottom: 16px; }
 }
 </style>

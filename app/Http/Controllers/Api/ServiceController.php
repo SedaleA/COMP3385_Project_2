@@ -22,38 +22,42 @@ class ServiceController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Validate the request data first
         $validator = Validator::make($request->all(), [
-            'title' => ['required', 'string', 'max:255'],
+            'title'       => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'category' => [
+            'category'    => [
                 'required',
                 'string',
                 'in:Web Development,Graphic Design,Photography,Video Editing,Writing & Editing,Tutoring,Music & Audio,Data Entry,Social Media Management,Translation'
             ],
-            'rate' => ['required', 'numeric', 'min:0'],
+            'rate'      => ['required', 'numeric', 'min:0'],
             'rate_type' => [
                 'required',
                 'string',
                 'in:per hour,per day,per week,per month,fixed'
             ],
-            'photo' => ['nullable', 'string'],
+            'photo' => ['required', 'image', 'max:3072'],
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
-                'errors' => $validator->errors(),
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
+        // Store the file only after validation passes
+        $photoPath = $request->file('photo')->store('photos', 'public');
+
         $service = Service::create([
-            'title' => $request->title,
+            'title'       => $request->title,
             'description' => $request->description,
-            'category' => $request->category,
-            'rate' => $request->rate,
-            'rate_type' => $request->rate_type,
-            'photo' => $request->photo,
-            'user_id' => auth('api')->id(),
+            'category'    => $request->category,
+            'rate'        => $request->rate,
+            'rate_type'   => $request->rate_type,
+            'photo'       => $photoPath,
+            'user_id'     => auth('api')->id(),
         ]);
 
         $service->load('user');
@@ -88,7 +92,7 @@ class ServiceController extends Controller
         }
 
         Favourite::create([
-            'user_id' => $user->id,
+            'user_id'    => $user->id,
             'service_id' => $service->id,
         ]);
 
@@ -105,8 +109,8 @@ class ServiceController extends Controller
             $search = $request->query('query');
 
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'ILIKE', "%{$search}%")
-                  ->orWhere('category', 'ILIKE', "%{$search}%");
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('category', 'LIKE', "%{$search}%");
             });
         }
 

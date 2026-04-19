@@ -13,7 +13,7 @@
         </template>
 
         <template v-else>
-          <router-link to="/users/1">My Profile</router-link>
+          <router-link :to="`/users/${userId}`">My Profile</router-link>
           <router-link to="/services/new">Add Service</router-link>
           <router-link to="/logout">Logout</router-link>
         </template>
@@ -42,10 +42,23 @@
 <script>
 export default {
   name: 'App',
-  computed: {
-    isLoggedIn() {
-      return !!localStorage.getItem('token')
+  data() {
+    return {
+      isLoggedIn: !!localStorage.getItem('token'),
+      userId: null,
     }
+  },
+  watch: {
+    // Re-evaluate auth state on every route change
+    $route() {
+      this.isLoggedIn = !!localStorage.getItem('token')
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      this.userId = user.id || null
+    }
+  },
+  created() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    this.userId = user.id || null
   }
 }
 </script>

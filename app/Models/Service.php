@@ -15,7 +15,7 @@ class Service extends Model
         'category',
         'rate',
         'rate_type',
-        'photos',
+        'photo',
         'user_id',
     ];
 

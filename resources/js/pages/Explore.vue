@@ -28,97 +28,57 @@
     </div>
 
     <div class="explore-content">
-      <section class="services-section">
-        <div class="section-heading">
-          <div>
-            <h2>Recently Added</h2>
-            <p>The latest services from our community</p>
-          </div>
-          <span class="section-badge">NEW</span>
-        </div>
+      <div v-if="loading" class="loading-state">
+        <p>Loading services...</p>
+      </div>
 
-        <div class="services-grid recent-grid">
-          <article
-            v-for="service in recentServices"
-            :key="service.id"
-            class="service-card"
-          >
-            <div class="service-image-wrap">
-              <img :src="service.image" :alt="service.title" class="service-image" />
-              <span class="category-tag">{{ service.category }}</span>
+      <div v-else-if="errorMessage" class="error-state">
+        <p>{{ errorMessage }}</p>
+      </div>
 
-              <button
-                type="button"
-                class="heart-button"
-                @click="toggleFavourite(service)"
-                :aria-label="service.isFavourited ? 'Remove from favourites' : 'Add to favourites'"
-              >
-                <span :class="{ active: service.isFavourited }">
-                  {{ service.isFavourited ? '♥' : '♡' }}
-                </span>
-              </button>
+      <template v-else>
+        <section class="services-section">
+          <div class="section-heading">
+            <div>
+              <h2>Recently Added</h2>
+              <p>The latest services from our community</p>
             </div>
+            <span class="section-badge">NEW</span>
+          </div>
 
-            <div class="service-body">
-              <h3>{{ service.title }}</h3>
+          <div class="services-grid recent-grid">
+            <article
+              v-for="service in recentServices"
+              :key="service.id"
+              class="service-card"
+            >
+              <div class="service-image-wrap">
+                <img
+                  :src="service.photo ? `/storage/${service.photo}` : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'"
+                  :alt="service.title"
+                  class="service-image"
+                />
+                <span class="category-tag">{{ service.category }}</span>
 
-              <p class="service-description">{{ service.description }}</p>
-
-              <div class="service-meta">
-                <strong>${{ service.rate }}</strong>
-                <span>{{ service.rate_type }}</span>
+                <button
+                  v-if="isLoggedIn"
+                  type="button"
+                  class="heart-button"
+                  @click="toggleFavourite(service)"
+                  :aria-label="service.isFavourited ? 'Remove from favourites' : 'Add to favourites'"
+                >
+                  <span :class="{ active: service.isFavourited }">
+                    {{ service.isFavourited ? '♥' : '♡' }}
+                  </span>
+                </button>
               </div>
 
-              <router-link :to="`/services/${service.id}`" class="details-btn">
-                View Details
-              </router-link>
-            </div>
-          </article>
-        </div>
-      </section>
+              <div class="service-body">
+                <h3>{{ service.title }}</h3>
 
-      <section class="services-section">
-        <div class="section-heading column-heading">
-          <div>
-            <h2>All Services</h2>
-            <p>{{ displayedServices.length }} services found</p>
-          </div>
-        </div>
+                <p class="service-description">{{ service.description }}</p>
 
-        <div class="services-grid">
-          <article
-            v-for="service in displayedServices"
-            :key="service.id"
-            class="service-card"
-          >
-            <div class="service-image-wrap">
-              <img :src="service.image" :alt="service.title" class="service-image" />
-              <span class="category-tag">{{ service.category }}</span>
-
-              <button
-                type="button"
-                class="heart-button"
-                @click="toggleFavourite(service)"
-                :aria-label="service.isFavourited ? 'Remove from favourites' : 'Add to favourites'"
-              >
-                <span :class="{ active: service.isFavourited }">
-                  {{ service.isFavourited ? '♥' : '♡' }}
-                </span>
-              </button>
-            </div>
-
-            <div class="service-body">
-              <h3>{{ service.title }}</h3>
-
-              <div class="provider-row">
-                <span class="provider-avatar">{{ service.provider_name.charAt(0) }}</span>
-                <span>{{ service.provider_name }}</span>
-              </div>
-
-              <p class="service-description">{{ service.description }}</p>
-
-              <div class="service-footer">
-                <div class="service-price">
+                <div class="service-meta">
                   <strong>${{ service.rate }}</strong>
                   <span>{{ service.rate_type }}</span>
                 </div>
@@ -127,12 +87,72 @@
                   View Details
                 </router-link>
               </div>
-            </div>
-          </article>
-        </div>
+            </article>
+          </div>
+        </section>
 
-        <p v-if="displayedServices.length === 0" class="no-results">No services found.</p>
-      </section>
+        <section class="services-section">
+          <div class="section-heading column-heading">
+            <div>
+              <h2>All Services</h2>
+              <p>{{ displayedServices.length }} services found</p>
+            </div>
+          </div>
+
+          <div class="services-grid">
+            <article
+              v-for="service in displayedServices"
+              :key="service.id"
+              class="service-card"
+            >
+              <div class="service-image-wrap">
+                <img
+                  :src="service.photo ? `/storage/${service.photo}` : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'"
+                  :alt="service.title"
+                  class="service-image"
+                />
+                <span class="category-tag">{{ service.category }}</span>
+
+                <button
+                  v-if="isLoggedIn"
+                  type="button"
+                  class="heart-button"
+                  @click="toggleFavourite(service)"
+                  :aria-label="service.isFavourited ? 'Remove from favourites' : 'Add to favourites'"
+                >
+                  <span :class="{ active: service.isFavourited }">
+                    {{ service.isFavourited ? '♥' : '♡' }}
+                  </span>
+                </button>
+              </div>
+
+              <div class="service-body">
+                <h3>{{ service.title }}</h3>
+
+                <div class="provider-row">
+                  <span class="provider-avatar">{{ service.user?.name?.charAt(0) ?? '?' }}</span>
+                  <span>{{ service.user?.name ?? 'Unknown' }}</span>
+                </div>
+
+                <p class="service-description">{{ service.description }}</p>
+
+                <div class="service-footer">
+                  <div class="service-price">
+                    <strong>${{ service.rate }}</strong>
+                    <span>{{ service.rate_type }}</span>
+                  </div>
+
+                  <router-link :to="`/services/${service.id}`" class="details-btn">
+                    View Details
+                  </router-link>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <p v-if="displayedServices.length === 0" class="no-results">No services found.</p>
+        </section>
+      </template>
     </div>
 
     <div v-if="toastMessage" class="toast">
@@ -142,6 +162,8 @@
 </template>
 
 <script>
+import api from '../services/api'
+
 export default {
   name: 'ExplorePage',
   data() {
@@ -149,88 +171,105 @@ export default {
       searchTerm: '',
       selectedCategory: '',
       toastMessage: '',
-      allServices: [
-        {
-          id: 1,
-          title: 'Logo Design',
-          category: 'Graphic Design',
-          rate: 50,
-          rate_type: 'per hour',
-          description: 'Professional logo design for small businesses and personal brands.',
-          provider_name: 'Daniela Retemyer',
-          isFavourited: false,
-          image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=900&q=80'
-        },
-        {
-          id: 2,
-          title: 'Website Development',
-          category: 'Web Development',
-          rate: 300,
-          rate_type: 'fixed',
-          description: 'Responsive website development using modern tools and clean layouts.',
-          provider_name: 'Jordan Smith',
-          isFavourited: false,
-          image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'
-        },
-        {
-          id: 3,
-          title: 'Essay Editing',
-          category: 'Writing & Editing',
-          rate: 25,
-          rate_type: 'per hour',
-          description: 'Editing and proofreading for essays, reports, and academic writing.',
-          provider_name: 'Alicia Browne',
-          isFavourited: false,
-          image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80'
-        }
-      ],
-      displayedServices: []
+      allServices: [],
+      displayedServices: [],
+      loading: false,
+      errorMessage: '',
     }
   },
   computed: {
+    isLoggedIn() {
+      return !!localStorage.getItem('token')
+    },
     recentServices() {
-      return this.allServices.slice(-3)
+      return [...this.allServices].slice(-3).reverse()
     },
     uniqueCategories() {
-      return [...new Set(this.allServices.map(service => service.category))]
+      return [...new Set(this.allServices.map(s => s.category))]
     }
   },
-  mounted() {
-    this.displayedServices = [...this.allServices]
+  async mounted() {
+    await this.fetchServices()
   },
   methods: {
-    handleSearch() {
-      const term = this.searchTerm.trim().toLowerCase()
-
-      this.displayedServices = this.allServices.filter(service => {
-        const matchesSearch =
-          !term ||
-          service.title.toLowerCase().includes(term) ||
-          service.category.toLowerCase().includes(term)
-
-        const matchesCategory =
-          !this.selectedCategory || service.category === this.selectedCategory
-
-        return matchesSearch && matchesCategory
-      })
-    },
-    toggleFavourite(service) {
+    async fetchServices() {
+      this.loading = true
+      this.errorMessage = ''
       try {
-        service.isFavourited = !service.isFavourited
-
-        if (service.isFavourited) {
-          this.showToast(`${service.title} added to favourites`)
-        } else {
-          this.showToast(`${service.title} removed from favourites`)
-        }
+        const response = await api.get('/services')
+        this.allServices = response.data.services.map(s => ({
+          ...s,
+          isFavourited: false,
+        }))
+        this.displayedServices = [...this.allServices]
       } catch (error) {
-        this.showToast('Something went wrong')
+        this.errorMessage = 'Failed to load services. Please try again.'
         console.error(error)
+      } finally {
+        this.loading = false
+      }
+    },
+    async handleSearch() {
+      const term = this.searchTerm.trim()
+
+      if (!term && !this.selectedCategory) {
+        this.displayedServices = [...this.allServices]
+        return
+      }
+
+      try {
+        const params = {}
+        if (term) params.query = term
+        if (this.selectedCategory) params.category = this.selectedCategory
+
+        const response = await api.get('/search', { params })
+        this.displayedServices = response.data.services.map(s => ({
+          ...s,
+          isFavourited: this.allServices.find(a => a.id === s.id)?.isFavourited ?? false,
+        }))
+      } catch (error) {
+        // Fall back to client-side filtering if search endpoint fails
+        this.displayedServices = this.allServices.filter(service => {
+          const matchesSearch =
+            !term ||
+            service.title.toLowerCase().includes(term.toLowerCase()) ||
+            service.category.toLowerCase().includes(term.toLowerCase())
+
+          const matchesCategory =
+            !this.selectedCategory || service.category === this.selectedCategory
+
+          return matchesSearch && matchesCategory
+        })
+      }
+    },
+    async toggleFavourite(service) {
+      if (!this.isLoggedIn) {
+        this.showToast('Please log in to favourite services')
+        return
+      }
+
+      // Optimistically toggle UI
+      service.isFavourited = !service.isFavourited
+
+      try {
+        await api.post(`/services/${service.id}/favourite`)
+        this.showToast(`${service.title} added to favourites`)
+      } catch (error) {
+        const status = error.response?.status
+        if (status === 409) {
+          // Already favourited — reflect that in UI
+          service.isFavourited = true
+          this.showToast('Already in your favourites')
+        } else {
+          // Revert on unexpected error
+          service.isFavourited = !service.isFavourited
+          this.showToast('Something went wrong')
+          console.error(error)
+        }
       }
     },
     showToast(message) {
       this.toastMessage = message
-
       setTimeout(() => {
         this.toastMessage = ''
       }, 2500)
@@ -331,6 +370,18 @@ export default {
   max-width: 1040px;
   margin: 0 auto;
   padding: 28px 20px 56px;
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.error-state {
+  color: #ef4444;
 }
 
 .services-section {
@@ -529,40 +580,18 @@ export default {
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 980px) {
-  .services-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .services-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 680px) {
-  .explore-hero h1 {
-    font-size: 32px;
-  }
-
-  .services-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .service-footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .toast {
-    right: 16px;
-    left: 16px;
-    bottom: 16px;
-  }
+  .explore-hero h1 { font-size: 32px; }
+  .services-grid { grid-template-columns: 1fr; }
+  .service-footer { flex-direction: column; align-items: flex-start; }
+  .toast { right: 16px; left: 16px; bottom: 16px; }
 }
 </style>
