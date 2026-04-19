@@ -20,7 +20,7 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'location' => ['required', 'string', 'max:255'],
             'biography' => ['nullable', 'string'],
-            'photo' => ['nullable', 'string'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif', 'max:3072'],
         ]);
 
         if ($validator->fails()) {
@@ -30,14 +30,19 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'location' => $request->location,
-            'biography' => $request->biography,
-            'photo' => $request->photo,
-        ]);
+        $photoPath = null;
+if ($request->hasFile('photo')) {
+    $photoPath = $request->file('photo')->store('photos', 'public');
+}
+
+$user = User::create([
+    'name'      => $request->name,
+    'email'     => $request->email,
+    'password'  => Hash::make($request->password),
+    'location'  => $request->location,
+    'biography' => $request->biography,
+    'photo'     => $photoPath,
+]);
 
         $token = JWTAuth::fromUser($user);
 
